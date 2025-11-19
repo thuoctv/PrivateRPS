@@ -7,9 +7,25 @@ import { JoinGame } from './JoinGame';
 import { GamesList } from './GamesList';
 import '../styles/RockPaperScissorsApp.css';
 
+type SelectedGame = {
+  id: number;
+  token: number;
+};
+
 export function RockPaperScissorsApp() {
   const { isConnected } = useAccount();
-  const [activeTab, setActiveTab] = useState<'create' | 'join' | 'games'>('create');
+  const [activeTab, setActiveTab] = useState<'create' | 'join' | 'games'>(
+    'create',
+  );
+  const [selectedGame, setSelectedGame] = useState<SelectedGame | null>(null);
+
+  const handleSelectGame = (gameId: number) => {
+    setSelectedGame({
+      id: gameId,
+      token: Date.now(),
+    });
+    setActiveTab('join');
+  };
 
   return (
     <div className="rps-app">
@@ -52,8 +68,10 @@ export function RockPaperScissorsApp() {
             </div>
 
             {activeTab === 'create' && <CreateGame />}
-            {activeTab === 'join' && <JoinGame />}
-            {activeTab === 'games' && <GamesList />}
+            {activeTab === 'join' && <JoinGame selectedGame={selectedGame} />}
+            {activeTab === 'games' && (
+              <GamesList onSelectGame={handleSelectGame} />
+            )}
           </div>
         )}
       </main>

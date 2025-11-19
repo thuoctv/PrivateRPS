@@ -184,6 +184,22 @@
   box-shadow: 4px 4px 0 #000000;
 }
 
+.turn-indicator--button {
+  width: 100%;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.turn-indicator--button:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 6px 6px 0 #000000;
+}
+
+.turn-indicator--button:focus-visible {
+  outline: 3px solid var(--brutal-black);
+  outline-offset: 4px;
+}
+
 .turn-text {
   font-size: 0.9rem;
   letter-spacing: 0.08em;

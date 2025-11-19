@@ -17,13 +17,23 @@ interface Game {
   createdAt: number;
 }
 
-export function GamesList() {
+interface GamesListProps {
+  onSelectGame?: (gameId: number) => void;
+}
+
+export function GamesList({ onSelectGame }: GamesListProps) {
   const { address } = useAccount();
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const { getPlayerGames, getGame, revealGame, subscribeToChoiceMadeEvent, subscribeToGameRevealedEvent } = useContractInteraction();
+  const {
+    getPlayerGames,
+    getGame,
+    revealGame,
+    subscribeToChoiceMadeEvent,
+    subscribeToGameRevealedEvent,
+  } = useContractInteraction();
 
   const loadGames = async () => {
     if (!address) return;
@@ -38,9 +48,9 @@ export function GamesList() {
           const game = await getGame(Number(id));
           return {
             gameId: Number(id),
-            ...game
+            ...game,
           };
-        })
+        }),
       );
 
       // Sort by creation time, newest first
@@ -55,35 +65,53 @@ export function GamesList() {
   };
 
   // Handle real-time events
-  const handleChoiceMadeEvent = useCallback((gameId: number, player: string) => {
-    console.log('Received ChoiceMade event:', { gameId, player });
-    // Update the specific game in our state
-    setGames(prevGames =>
-      prevGames.map(game => {
-        if (game.gameId === gameId) {
-          const isPlayer1 = game.player1.toLowerCase() === player.toLowerCase();
-          return {
-            ...game,
-            player1Made: isPlayer1 ? true : game.player1Made,
-            player2Made: !isPlayer1 ? true : game.player2Made,
-          };
-        }
-        return game;
-      })
-    );
-  }, []);
+  const handleChoiceMadeEvent = useCallback(
+    (gameId: number, player: string) => {
+      console.log('Received ChoiceMade event:', { gameId, player });
+      // Update the specific game in our state
+      setGames((prevGames) =>
+        prevGames.map((game) => {
+          if (game.gameId === gameId) {
+            const isPlayer1 =
+              game.player1.toLowerCase() === player.toLowerCase();
+            return {
+              ...game,
+              player1Made: isPlayer1 ? true : game.player1Made,
+              player2Made: !isPlayer1 ? true : game.player2Made,
+            };
+          }
+          return game;
+        }),
+      );
+    },
+    [],
+  );
 
-  const handleGameRevealedEvent = useCallback((gameId: number, result: number, choice1: number, choice2: number) => {
-    console.log('Received GameRevealed event:', { gameId, result, choice1, choice2 });
-    // Update the specific game in our state
-    setGames(prevGames =>
-      prevGames.map(game =>
-        game.gameId === gameId
-          ? { ...game, revealed: true, result, revealedChoice1: choice1, revealedChoice2: choice2 }
-          : game
-      )
-    );
-  }, []);
+  const handleGameRevealedEvent = useCallback(
+    (gameId: number, result: number, choice1: number, choice2: number) => {
+      console.log('Received GameRevealed event:', {
+        gameId,
+        result,
+        choice1,
+        choice2,
+      });
+      // Update the specific game in our state
+      setGames((prevGames) =>
+        prevGames.map((game) =>
+          game.gameId === gameId
+            ? {
+                ...game,
+                revealed: true,
+                result,
+                revealedChoice1: choice1,
+                revealedChoice2: choice2,
+              }
+            : game,
+        ),
+      );
+    },
+    [],
+  );
 
   useEffect(() => {
     loadGames();
@@ -98,7 +126,12 @@ export function GamesList() {
       choiceCleanup();
       revealCleanup();
     };
-  }, [subscribeToChoiceMadeEvent, subscribeToGameRevealedEvent, handleChoiceMadeEvent, handleGameRevealedEvent]);
+  }, [
+    subscribeToChoiceMadeEvent,
+    subscribeToGameRevealedEvent,
+    handleChoiceMadeEvent,
+    handleGameRevealedEvent,
+  ]);
 
   const handleRevealGame = async (gameId: number) => {
     try {
@@ -168,11 +201,7 @@ export function GamesList() {
         </button>
       </div>
 
-      {error && (
-        <div className="error-message">
-          {error}
-        </div>
-      )}
+      {error && <div className="error-message">{error}</div>}
 
       {games.length === 0 ? (
         <div className="no-games">
@@ -185,94 +214,137 @@ export function GamesList() {
             const revealedChoice2 = getChoiceDefinition(game.revealedChoice2);
 
             return (
-              <div key={game.gameId} className={`game-card ${isPlayerTurn(game) ? 'your-turn' : ''}`}>
-              <div className="game-header">
-                <h3>Game #{game.gameId}</h3>
-                <span className={`status-badge ${game.revealed ? 'completed' : 'active'}`}>
-                  {getGameStatus(game)}
-                </span>
-              </div>
-
-              <div className="game-details">
-                <div className="players">
-                  <div className="player">
-                    <span className="player-label">Player 1:</span>
-                    <span className="player-address">{formatAddress(game.player1)}</span>
-                    <span className={`ready-status ${game.player1Made ? 'ready' : 'waiting'}`}>
-                      {game.player1Made ? '✅' : '⏳'}
-                    </span>
-                  </div>
-                  <div className="player">
-                    <span className="player-label">Player 2:</span>
-                    <span className="player-address">{formatAddress(game.player2)}</span>
-                    <span className={`ready-status ${game.player2Made ? 'ready' : 'waiting'}`}>
-                      {game.player2Made ? '✅' : '⏳'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="game-meta">
-                  <p className="created-date">Created: {formatDate(game.createdAt)}</p>
-                </div>
-              </div>
-
-              <div className="game-actions">
-                {isPlayerTurn(game) && (
-                  <div className="turn-indicator">
-                    <span className="turn-text">Your turn to play!</span>
-                  </div>
-                )}
-
-                {canReveal(game) && (
-                  <button
-                    onClick={() => handleRevealGame(game.gameId)}
-                    className="reveal-button"
+              <div
+                key={game.gameId}
+                className={`game-card ${isPlayerTurn(game) ? 'your-turn' : ''}`}
+              >
+                <div className="game-header">
+                  <h3>Game #{game.gameId}</h3>
+                  <span
+                    className={`status-badge ${game.revealed ? 'completed' : 'active'}`}
                   >
-                    Reveal Results
-                  </button>
-                )}
+                    {getGameStatus(game)}
+                  </span>
+                </div>
 
-                {game.revealed && (
-                  <div className="game-result">
-                    <div className={`result ${game.result === 1 ? 'draw' : game.result === 2 ? 'player1-wins' : 'player2-wins'}`}>
-                      <strong>{getGameStatus(game)}</strong>
-                      {game.result === 2 && game.player1.toLowerCase() === address?.toLowerCase() && (
-                        <span className="you-won"> - You Won! 🎉</span>
-                      )}
-                      {game.result === 3 && game.player2.toLowerCase() === address?.toLowerCase() && (
-                        <span className="you-won"> - You Won! 🎉</span>
-                      )}
-                      {game.result === 1 && (
-                        <span className="draw-result"> - It's a Draw!</span>
-                      )}
+                <div className="game-details">
+                  <div className="players">
+                    <div className="player">
+                      <span className="player-label">Player 1:</span>
+                      <span className="player-address">
+                        {formatAddress(game.player1)}
+                      </span>
+                      <span
+                        className={`ready-status ${game.player1Made ? 'ready' : 'waiting'}`}
+                      >
+                        {game.player1Made ? '✅' : '⏳'}
+                      </span>
                     </div>
-                    <div className="choices-revealed">
-                      <div className="choice-display">
-                        <span className="player-label">Player 1 chose:</span>
-                        <div className={`choice-icon choice-icon--sm choice-icon--${revealedChoice1.variant}`}>
-                          {revealedChoice1.icon ? (
-                            <img src={revealedChoice1.icon} alt={`${revealedChoice1.name} icon`} />
-                          ) : (
-                            <span className="choice-icon-label">{revealedChoice1.label}</span>
-                          )}
-                        </div>
-                        <span className="choice-name">{revealedChoice1.name}</span>
-                      </div>
-                      <div className="choice-display">
-                        <span className="player-label">Player 2 chose:</span>
-                        <div className={`choice-icon choice-icon--sm choice-icon--${revealedChoice2.variant}`}>
-                          {revealedChoice2.icon ? (
-                            <img src={revealedChoice2.icon} alt={`${revealedChoice2.name} icon`} />
-                          ) : (
-                            <span className="choice-icon-label">{revealedChoice2.label}</span>
-                          )}
-                        </div>
-                        <span className="choice-name">{revealedChoice2.name}</span>
-                      </div>
+                    <div className="player">
+                      <span className="player-label">Player 2:</span>
+                      <span className="player-address">
+                        {formatAddress(game.player2)}
+                      </span>
+                      <span
+                        className={`ready-status ${game.player2Made ? 'ready' : 'waiting'}`}
+                      >
+                        {game.player2Made ? '✅' : '⏳'}
+                      </span>
                     </div>
                   </div>
-                )}
-              </div>
+
+                  <div className="game-meta">
+                    <p className="created-date">
+                      Created: {formatDate(game.createdAt)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="game-actions">
+                  {isPlayerTurn(game) && (
+                    <button
+                      type="button"
+                      className="turn-indicator turn-indicator--button"
+                      onClick={() => onSelectGame?.(game.gameId)}
+                    >
+                      <span className="turn-text">Your turn to play!</span>
+                    </button>
+                  )}
+
+                  {canReveal(game) && (
+                    <button
+                      onClick={() => handleRevealGame(game.gameId)}
+                      className="reveal-button"
+                    >
+                      Reveal Results
+                    </button>
+                  )}
+
+                  {game.revealed && (
+                    <div className="game-result">
+                      <div
+                        className={`result ${game.result === 1 ? 'draw' : game.result === 2 ? 'player1-wins' : 'player2-wins'}`}
+                      >
+                        <strong>{getGameStatus(game)}</strong>
+                        {game.result === 2 &&
+                          game.player1.toLowerCase() ===
+                            address?.toLowerCase() && (
+                            <span className="you-won"> - You Won! 🎉</span>
+                          )}
+                        {game.result === 3 &&
+                          game.player2.toLowerCase() ===
+                            address?.toLowerCase() && (
+                            <span className="you-won"> - You Won! 🎉</span>
+                          )}
+                        {game.result === 1 && (
+                          <span className="draw-result"> - It's a Draw!</span>
+                        )}
+                      </div>
+                      <div className="choices-revealed">
+                        <div className="choice-display">
+                          <span className="player-label">Player 1 chose:</span>
+                          <div
+                            className={`choice-icon choice-icon--sm choice-icon--${revealedChoice1.variant}`}
+                          >
+                            {revealedChoice1.icon ? (
+                              <img
+                                src={revealedChoice1.icon}
+                                alt={`${revealedChoice1.name} icon`}
+                              />
+                            ) : (
+                              <span className="choice-icon-label">
+                                {revealedChoice1.label}
+                              </span>
+                            )}
+                          </div>
+                          <span className="choice-name">
+                            {revealedChoice1.name}
+                          </span>
+                        </div>
+                        <div className="choice-display">
+                          <span className="player-label">Player 2 chose:</span>
+                          <div
+                            className={`choice-icon choice-icon--sm choice-icon--${revealedChoice2.variant}`}
+                          >
+                            {revealedChoice2.icon ? (
+                              <img
+                                src={revealedChoice2.icon}
+                                alt={`${revealedChoice2.name} icon`}
+                              />
+                            ) : (
+                              <span className="choice-icon-label">
+                                {revealedChoice2.label}
+                              </span>
+                            )}
+                          </div>
+                          <span className="choice-name">
+                            {revealedChoice2.name}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}

@@ -5,7 +5,16 @@ import { useContractInteraction } from '../hooks/useContractInteraction';
 import '../styles/JoinGame.css';
 import { CHOICES, getChoiceDefinition } from '../utils/choices';
 
-export function JoinGame() {
+type SelectedGame = {
+  id: number;
+  token: number;
+} | null;
+
+interface JoinGameProps {
+  selectedGame?: SelectedGame;
+}
+
+export function JoinGame({ selectedGame }: JoinGameProps) {
   const { address } = useAccount();
   const [gameId, setGameId] = useState('');
   const [selectedChoice, setSelectedChoice] = useState<number>(0);
@@ -15,7 +24,13 @@ export function JoinGame() {
   const [gameInfo, setGameInfo] = useState<any>(null);
 
   const { instance } = useZamaInstance();
-  const { getGame, makeChoice, contractAddress, subscribeToChoiceMadeEvent, subscribeToGameRevealedEvent } = useContractInteraction();
+  const {
+    getGame,
+    makeChoice,
+    contractAddress,
+    subscribeToChoiceMadeEvent,
+    subscribeToGameRevealedEvent,
+  } = useContractInteraction();
 
   const choices = CHOICES;
 
@@ -38,56 +53,85 @@ export function JoinGame() {
     }
   }, [gameId]);
 
-  // Handle real-time events for the current game
-  const handleChoiceMadeEvent = useCallback((eventGameId: number, player: string) => {
-    if (gameInfo && eventGameId === parseInt(gameId)) {
-      console.log('Received ChoiceMade event for current game:', { eventGameId, player });
-      setGameInfo((prev: any) => {
-        if (!prev) return prev;
-        const isPlayer1 = prev.player1.toLowerCase() === player.toLowerCase();
-        return {
-          ...prev,
-          player1Made: isPlayer1 ? true : prev.player1Made,
-          player2Made: !isPlayer1 ? true : prev.player2Made,
-        };
-      });
+  useEffect(() => {
+    if (selectedGame?.id) {
+      setGameId(String(selectedGame.id));
     }
-  }, [gameInfo, gameId]);
+  }, [selectedGame]);
 
-  const handleGameRevealedEvent = useCallback((eventGameId: number, result: number, choice1: number, choice2: number) => {
-    if (gameInfo && eventGameId === parseInt(gameId)) {
-      console.log('Received GameRevealed event for current game:', { eventGameId, result, choice1, choice2 });
-      setGameInfo((prev: any) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          revealed: true,
+  // Handle real-time events for the current game
+  const handleChoiceMadeEvent = useCallback(
+    (eventGameId: number, player: string) => {
+      if (gameInfo && eventGameId === parseInt(gameId)) {
+        console.log('Received ChoiceMade event for current game:', {
+          eventGameId,
+          player,
+        });
+        setGameInfo((prev: any) => {
+          if (!prev) return prev;
+          const isPlayer1 = prev.player1.toLowerCase() === player.toLowerCase();
+          return {
+            ...prev,
+            player1Made: isPlayer1 ? true : prev.player1Made,
+            player2Made: !isPlayer1 ? true : prev.player2Made,
+          };
+        });
+      }
+    },
+    [gameInfo, gameId],
+  );
+
+  const handleGameRevealedEvent = useCallback(
+    (eventGameId: number, result: number, choice1: number, choice2: number) => {
+      if (gameInfo && eventGameId === parseInt(gameId)) {
+        console.log('Received GameRevealed event for current game:', {
+          eventGameId,
           result,
-          revealedChoice1: choice1,
-          revealedChoice2: choice2
-        };
-      });
-    }
-  }, [gameInfo, gameId]);
+          choice1,
+          choice2,
+        });
+        setGameInfo((prev: any) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            revealed: true,
+            result,
+            revealedChoice1: choice1,
+            revealedChoice2: choice2,
+          };
+        });
+      }
+    },
+    [gameInfo, gameId],
+  );
 
   // Set up event listeners for real-time updates
   useEffect(() => {
     if (gameId && parseInt(gameId)) {
       const choiceCleanup = subscribeToChoiceMadeEvent(handleChoiceMadeEvent);
-      const revealCleanup = subscribeToGameRevealedEvent(handleGameRevealedEvent);
+      const revealCleanup = subscribeToGameRevealedEvent(
+        handleGameRevealedEvent,
+      );
 
       return () => {
         choiceCleanup();
         revealCleanup();
       };
     }
-  }, [gameId, subscribeToChoiceMadeEvent, subscribeToGameRevealedEvent, handleChoiceMadeEvent, handleGameRevealedEvent]);
+  }, [
+    gameId,
+    subscribeToChoiceMadeEvent,
+    subscribeToGameRevealedEvent,
+    handleChoiceMadeEvent,
+    handleGameRevealedEvent,
+  ]);
 
   const canMakeChoice = () => {
     if (!gameInfo || !address) return false;
 
-    const isPlayer = gameInfo.player1.toLowerCase() === address.toLowerCase() ||
-                     gameInfo.player2.toLowerCase() === address.toLowerCase();
+    const isPlayer =
+      gameInfo.player1.toLowerCase() === address.toLowerCase() ||
+      gameInfo.player2.toLowerCase() === address.toLowerCase();
 
     if (!isPlayer) return false;
     if (gameInfo.revealed) return false;
@@ -108,8 +152,8 @@ export function JoinGame() {
 
     try {
       // Create encrypted input for the choice
-      console.log("createEncryptedInput:",address,selectedChoice);
-      
+      console.log('createEncryptedInput:', address, selectedChoice);
+
       const input = instance.createEncryptedInput(contractAddress, address!);
       input.add8(selectedChoice);
       const encryptedInput = await input.encrypt();
@@ -117,7 +161,7 @@ export function JoinGame() {
       await makeChoice(
         parseInt(gameId),
         encryptedInput.handles[0],
-        encryptedInput.inputProof
+        encryptedInput.inputProof,
       );
 
       setSuccess('Choice submitted successfully!');
@@ -138,7 +182,8 @@ export function JoinGame() {
 
     if (!isPlayer1 && !isPlayer2) return 'You are not a player in this game';
 
-    if (gameInfo.revealed) return `Game completed! Result: ${['Pending', 'Draw', 'Player 1 Wins', 'Player 2 Wins'][gameInfo.result]}`;
+    if (gameInfo.revealed)
+      return `Game completed! Result: ${['Pending', 'Draw', 'Player 1 Wins', 'Player 2 Wins'][gameInfo.result]}`;
 
     // Check if both players have made their choices
     if (gameInfo.player1Made && gameInfo.player2Made) {
@@ -146,9 +191,13 @@ export function JoinGame() {
     }
 
     if (isPlayer1) {
-      return gameInfo.player1Made ? 'You have already made your choice. Waiting for Player 2.' : 'Make your choice!';
+      return gameInfo.player1Made
+        ? 'You have already made your choice. Waiting for Player 2.'
+        : 'Make your choice!';
     } else {
-      return gameInfo.player2Made ? 'You have already made your choice. Waiting for Player 1.' : 'Make your choice!';
+      return gameInfo.player2Made
+        ? 'You have already made your choice. Waiting for Player 1.'
+        : 'Make your choice!';
     }
   };
 
@@ -177,11 +226,23 @@ export function JoinGame() {
           <div className="game-info">
             <h3>Game Information</h3>
             <div className="game-details">
-              <p><strong>Player 1:</strong> {gameInfo.player1}</p>
-              <p><strong>Player 2:</strong> {gameInfo.player2}</p>
-              <p><strong>Player 1 Ready:</strong> {gameInfo.player1Made ? '✅' : '❌'}</p>
-              <p><strong>Player 2 Ready:</strong> {gameInfo.player2Made ? '✅' : '❌'}</p>
-              <p><strong>Status:</strong> {getPlayerStatus()}</p>
+              <p>
+                <strong>Player 1:</strong> {gameInfo.player1}
+              </p>
+              <p>
+                <strong>Player 2:</strong> {gameInfo.player2}
+              </p>
+              <p>
+                <strong>Player 1 Ready:</strong>{' '}
+                {gameInfo.player1Made ? '✅' : '❌'}
+              </p>
+              <p>
+                <strong>Player 2 Ready:</strong>{' '}
+                {gameInfo.player2Made ? '✅' : '❌'}
+              </p>
+              <p>
+                <strong>Status:</strong> {getPlayerStatus()}
+              </p>
 
               {gameInfo.revealed && (
                 <div className="revealed-choices">
@@ -189,31 +250,47 @@ export function JoinGame() {
                   <div className="choice-results">
                     <div className="player-choice">
                       <span>Player 1 chose: </span>
-                      <div className={`choice-icon choice-icon--sm choice-icon--${getChoiceDisplay(gameInfo.revealedChoice1).variant}`}>
+                      <div
+                        className={`choice-icon choice-icon--sm choice-icon--${getChoiceDisplay(gameInfo.revealedChoice1).variant}`}
+                      >
                         {getChoiceDisplay(gameInfo.revealedChoice1).icon ? (
                           <img
-                            src={getChoiceDisplay(gameInfo.revealedChoice1).icon}
+                            src={
+                              getChoiceDisplay(gameInfo.revealedChoice1).icon
+                            }
                             alt={`${getChoiceDisplay(gameInfo.revealedChoice1).name} icon`}
                           />
                         ) : (
-                          <span className="choice-icon-label">{getChoiceDisplay(gameInfo.revealedChoice1).label}</span>
+                          <span className="choice-icon-label">
+                            {getChoiceDisplay(gameInfo.revealedChoice1).label}
+                          </span>
                         )}
                       </div>
-                      <span className="choice-name">{getChoiceDisplay(gameInfo.revealedChoice1).name}</span>
+                      <span className="choice-name">
+                        {getChoiceDisplay(gameInfo.revealedChoice1).name}
+                      </span>
                     </div>
                     <div className="player-choice">
                       <span>Player 2 chose: </span>
-                      <div className={`choice-icon choice-icon--sm choice-icon--${getChoiceDisplay(gameInfo.revealedChoice2).variant}`}>
+                      <div
+                        className={`choice-icon choice-icon--sm choice-icon--${getChoiceDisplay(gameInfo.revealedChoice2).variant}`}
+                      >
                         {getChoiceDisplay(gameInfo.revealedChoice2).icon ? (
                           <img
-                            src={getChoiceDisplay(gameInfo.revealedChoice2).icon}
+                            src={
+                              getChoiceDisplay(gameInfo.revealedChoice2).icon
+                            }
                             alt={`${getChoiceDisplay(gameInfo.revealedChoice2).name} icon`}
                           />
                         ) : (
-                          <span className="choice-icon-label">{getChoiceDisplay(gameInfo.revealedChoice2).label}</span>
+                          <span className="choice-icon-label">
+                            {getChoiceDisplay(gameInfo.revealedChoice2).label}
+                          </span>
                         )}
                       </div>
-                      <span className="choice-name">{getChoiceDisplay(gameInfo.revealedChoice2).name}</span>
+                      <span className="choice-name">
+                        {getChoiceDisplay(gameInfo.revealedChoice2).name}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -233,7 +310,9 @@ export function JoinGame() {
                   className={`choice-button ${selectedChoice === choice.value ? 'selected' : ''}`}
                   disabled={isSubmitting}
                 >
-                  <div className={`choice-icon choice-icon--lg choice-icon--${choice.variant}`}>
+                  <div
+                    className={`choice-icon choice-icon--lg choice-icon--${choice.variant}`}
+                  >
                     {choice.icon ? (
                       <img src={choice.icon} alt={`${choice.name} icon`} />
                     ) : (
@@ -248,17 +327,9 @@ export function JoinGame() {
           </div>
         )}
 
-        {error && (
-          <div className="error-message">
-            {error}
-          </div>
-        )}
+        {error && <div className="error-message">{error}</div>}
 
-        {success && (
-          <div className="success-message">
-            {success}
-          </div>
-        )}
+        {success && <div className="success-message">{success}</div>}
 
         {gameInfo && canMakeChoice() && selectedChoice > 0 && (
           <button
@@ -266,7 +337,9 @@ export function JoinGame() {
             disabled={isSubmitting}
             className="submit-choice-button"
           >
-            {isSubmitting ? 'Submitting Choice...' : `Submit ${choices.find(c => c.value === selectedChoice)?.name}`}
+            {isSubmitting
+              ? 'Submitting Choice...'
+              : `Submit ${choices.find((c) => c.value === selectedChoice)?.name}`}
           </button>
         )}
       </div>
