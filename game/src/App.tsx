@@ -5,6 +5,7 @@ import '@rainbow-me/rainbowkit/styles.css';
 
 import { config } from './config/wagmi';
 import { RockPaperScissorsApp } from './components/RockPaperScissorsApp';
+import './App.css';
 
 const queryClient = new QueryClient();
 
@@ -13,7 +14,7 @@ function App() {
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider locale="en">
-          <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
+          <div className="app-shell">
             <RockPaperScissorsApp />
           </div>
         </RainbowKitProvider>
@@ -22,4 +23,4 @@ function App() {
   );
 }
 
-export default App
+export default App;

@@ -1,137 +1,145 @@
 .create-game-container {
   display: flex;
   justify-content: center;
-  padding: 2rem 0;
+  padding: 2rem 0 0;
 }
 
 .create-game-card {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
-  padding: 2.5rem;
-  max-width: 600px;
+  background: var(--brutal-cream);
+  border: 3px solid var(--brutal-black);
+  border-radius: 32px;
+  padding: 2.75rem;
+  max-width: 640px;
   width: 100%;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: var(--brutal-shadow);
 }
 
 .create-game-title {
-  font-size: 2rem;
+  font-size: 2.2rem;
   font-weight: 700;
-  color: #2d3748;
-  margin-bottom: 0.5rem;
   text-align: center;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .create-game-description {
-  color: #718096;
+  color: #2f2f2f;
   text-align: center;
-  margin-bottom: 2rem;
-  font-size: 1.1rem;
-  line-height: 1.6;
+  margin-bottom: 2.5rem;
+  font-size: 1rem;
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
 }
 
 .form-label {
   display: block;
-  font-weight: 600;
-  color: #2d3748;
+  font-weight: 700;
   margin-bottom: 0.5rem;
-  font-size: 1rem;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .form-input {
   width: 100%;
-  padding: 1rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  border: 3px solid var(--brutal-black);
+  border-radius: 18px;
   font-size: 1rem;
-  transition: all 0.3s ease;
   background: white;
-  box-sizing: border-box;
+  box-shadow: inset -3px -3px 0 rgba(255, 214, 114, 0.6);
+  transition: transform 0.15s ease;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  transform: translate(-2px, -2px);
+  box-shadow: inset -3px -3px 0 rgba(255, 214, 114, 0.9);
 }
 
 .form-input:disabled {
-  background: #f7fafc;
-  color: #a0aec0;
+  background: #fef3c7;
+  color: #8b8b8b;
   cursor: not-allowed;
 }
 
 .form-hint {
-  font-size: 0.875rem;
-  color: #718096;
-  margin-top: 0.5rem;
-  line-height: 1.4;
+  font-size: 0.8rem;
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 0.35rem;
+  color: #4b4b4b;
+}
+
+.error-message,
+.success-message {
+  padding: 1rem 1.25rem;
+  border-radius: 18px;
+  border: 3px solid var(--brutal-black);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 1rem;
+  box-shadow: 4px 4px 0 #000000;
 }
 
 .error-message {
-  background: #fed7d7;
-  color: #c53030;
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  font-weight: 500;
-  border-left: 4px solid #e53e3e;
+  background: #ffb4a2;
 }
 
 .success-message {
-  background: #c6f6d5;
-  color: #22543d;
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  font-weight: 500;
-  border-left: 4px solid #38a169;
+  background: var(--brutal-mint);
 }
 
 .create-game-button {
   width: 100%;
   padding: 1.25rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--brutal-blue);
   color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 1.1rem;
-  font-weight: 600;
+  border: 3px solid var(--brutal-black);
+  border-radius: 18px;
+  font-size: 1.15rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  box-shadow: 6px 6px 0 #000000;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .create-game-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+  transform: translate(-3px, -3px);
+  box-shadow: 9px 9px 0 #000000;
 }
 
 .create-game-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+  box-shadow: 6px 6px 0 #000000;
 }
 
 .game-rules {
-  margin-top: 2rem;
-  padding: 1.5rem;
-  background: #f7fafc;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  margin-top: 2.5rem;
+  padding: 1.75rem;
+  background: white;
+  border: 3px solid var(--brutal-black);
+  border-radius: 24px;
+  box-shadow: var(--brutal-shadow);
 }
 
 .game-rules h3 {
-  color: #2d3748;
-  margin-bottom: 1rem;
+  margin-top: 0;
   font-size: 1.2rem;
-  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .game-rules ul {
@@ -141,46 +149,30 @@
 }
 
 .game-rules li {
-  padding: 0.5rem 0;
-  color: #4a5568;
-  font-size: 0.95rem;
-  line-height: 1.5;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 0.65rem 0;
+  border-bottom: 2px dashed #111;
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .game-rules li:last-child {
   border-bottom: none;
 }
 
-.game-rules li:before {
-  content: "🎯";
+.game-rules li::before {
+  content: '✱';
   margin-right: 0.75rem;
+  color: var(--brutal-orange);
 }
 
 @media (max-width: 768px) {
   .create-game-container {
-    padding: 1rem;
+    padding: 1rem 0;
   }
 
   .create-game-card {
     padding: 2rem;
-    margin: 0 1rem;
-  }
-
-  .create-game-title {
-    font-size: 1.75rem;
-  }
-
-  .create-game-description {
-    font-size: 1rem;
-  }
-
-  .form-input {
-    padding: 0.875rem;
-  }
-
-  .create-game-button {
-    padding: 1rem;
-    font-size: 1rem;
+    margin: 0 0.25rem;
   }
 }

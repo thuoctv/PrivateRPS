@@ -1,12 +1,12 @@
 .rps-app {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
+  color: var(--brutal-black);
 }
 
 .main-content {
-  padding: 2rem;
-  max-width: 1200px;
+  padding: 0 1.5rem 4rem;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
@@ -15,67 +15,67 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 60vh;
   text-align: center;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  backdrop-filter: blur(10px);
-  padding: 3rem;
-  margin: 2rem auto;
-  max-width: 500px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--brutal-cream);
+  border: 3px solid var(--brutal-black);
+  border-radius: 32px;
+  padding: 3rem 2.5rem;
+  margin: 3rem auto;
+  max-width: 620px;
+  box-shadow: var(--brutal-shadow);
 }
 
 .connect-wallet-title {
-  font-size: 2.5rem;
+  font-size: clamp(2rem, 4vw, 2.8rem);
   font-weight: 700;
-  color: white;
   margin-bottom: 1rem;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .connect-wallet-description {
-  font-size: 1.2rem;
-  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.1rem;
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   margin-bottom: 2rem;
-  line-height: 1.6;
+  color: #333;
 }
 
 .tab-navigation {
-  margin-bottom: 2rem;
+  margin: 2.5rem 0;
 }
 
 .tab-nav {
   display: flex;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 0.5rem;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  gap: 1.25rem;
+  flex-wrap: wrap;
 }
 
 .tab-button {
   flex: 1;
-  padding: 1rem 2rem;
-  border: none;
-  border-radius: 8px;
+  min-width: 180px;
+  padding: 1.1rem 1.5rem;
+  border: 3px solid var(--brutal-black);
+  border-radius: 18px;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.7);
+  background: #fff0c1;
+  box-shadow: var(--brutal-shadow);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .tab-button.active {
-  background: rgba(255, 255, 255, 0.9);
-  color: #4c51bf;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: white;
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 8px 0 var(--brutal-black);
 }
 
 .tab-button.inactive:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  transform: translate(-2px, -2px);
 }
 
 .tab-button:disabled {
@@ -85,24 +85,19 @@
 
 @media (max-width: 768px) {
   .main-content {
-    padding: 1rem;
+    padding: 0 1rem 3rem;
   }
 
   .connect-wallet-container {
-    padding: 2rem;
-    margin: 1rem;
-  }
-
-  .connect-wallet-title {
-    font-size: 2rem;
+    padding: 2.5rem 1.5rem;
+    margin: 2rem 0;
   }
 
   .tab-nav {
     flex-direction: column;
-    gap: 0.5rem;
   }
 
   .tab-button {
-    padding: 0.75rem 1rem;
+    width: 100%;
   }
 }
