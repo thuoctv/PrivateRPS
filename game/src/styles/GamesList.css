@@ -253,8 +253,48 @@
   text-transform: uppercase;
 }
 
-.choice-emoji {
-  font-size: 2rem;
+.choice-icon {
+  border: 3px solid var(--brutal-black);
+  border-radius: 18px;
+  width: 70px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  box-shadow: 4px 4px 0 var(--brutal-black);
+  margin: 0.25rem 0;
+}
+
+.choice-icon img {
+  width: 70%;
+  height: auto;
+}
+
+.choice-icon-label {
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+}
+
+.choice-icon--rock {
+  background: #111;
+}
+
+.choice-icon--rock img {
+  filter: invert(1);
+}
+
+.choice-icon--paper {
+  background: var(--brutal-mint);
+}
+
+.choice-icon--scissors {
+  background: var(--brutal-orange);
+}
+
+.choice-icon--unknown {
+  background: #d1d5db;
 }
 
 @media (max-width: 768px) {

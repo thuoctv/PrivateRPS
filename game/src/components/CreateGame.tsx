@@ -98,17 +98,6 @@ export function CreateGame() {
         >
           {isCreating ? 'Creating Game...' : 'Create Game'}
         </button>
-
-        <div className="game-rules">
-          <h3>Game Rules:</h3>
-          <ul>
-            <li>Rock (1) beats Scissors (3)</li>
-            <li>Paper (2) beats Rock (1)</li>
-            <li>Scissors (3) beats Paper (2)</li>
-            <li>Both players must make their choice before revealing</li>
-            <li>Choices are encrypted and hidden until revelation</li>
-          </ul>
-        </div>
       </div>
     </div>
   );

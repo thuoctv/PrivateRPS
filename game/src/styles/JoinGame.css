@@ -113,8 +113,59 @@
   cursor: not-allowed;
 }
 
-.choice-emoji {
-  font-size: 2.8rem;
+.choice-icon {
+  border: 3px solid var(--brutal-black);
+  border-radius: 22px;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  box-shadow: 6px 6px 0 var(--brutal-black);
+  padding: 0.75rem;
+}
+
+.choice-icon img {
+  width: 80%;
+  height: auto;
+  max-width: 120px;
+}
+
+.choice-icon--lg {
+  height: 140px;
+}
+
+.choice-icon--sm {
+  width: 70px;
+  height: 70px;
+  margin-bottom: 0;
+  box-shadow: 4px 4px 0 var(--brutal-black);
+}
+
+.choice-icon-label {
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.2em;
+}
+
+.choice-icon--rock {
+  background: #111;
+}
+
+.choice-icon--rock img {
+  filter: invert(1);
+}
+
+.choice-icon--paper {
+  background: var(--brutal-mint);
+}
+
+.choice-icon--scissors {
+  background: var(--brutal-orange);
+}
+
+.choice-icon--unknown {
+  background: #d1d5db;
 }
 
 .choice-name {

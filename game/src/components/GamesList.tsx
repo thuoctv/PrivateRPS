@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAccount } from 'wagmi';
 import { useContractInteraction } from '../hooks/useContractInteraction';
 import '../styles/GamesList.css';
+import { getChoiceDefinition } from '../utils/choices';
 
 interface Game {
   gameId: number;
@@ -150,16 +151,6 @@ export function GamesList() {
     return new Date(timestamp * 1000).toLocaleString();
   };
 
-  const getChoiceDisplay = (choice: number) => {
-    const choices = {
-      0: { emoji: '❓', name: 'Unknown' },
-      1: { emoji: '🪨', name: 'Rock' },
-      2: { emoji: '📄', name: 'Paper' },
-      3: { emoji: '✂️', name: 'Scissors' }
-    };
-    return choices[choice as keyof typeof choices] || choices[0];
-  };
-
   if (loading) {
     return (
       <div className="games-list-container">
@@ -189,8 +180,12 @@ export function GamesList() {
         </div>
       ) : (
         <div className="games-grid">
-          {games.map((game) => (
-            <div key={game.gameId} className={`game-card ${isPlayerTurn(game) ? 'your-turn' : ''}`}>
+          {games.map((game) => {
+            const revealedChoice1 = getChoiceDefinition(game.revealedChoice1);
+            const revealedChoice2 = getChoiceDefinition(game.revealedChoice2);
+
+            return (
+              <div key={game.gameId} className={`game-card ${isPlayerTurn(game) ? 'your-turn' : ''}`}>
               <div className="game-header">
                 <h3>Game #{game.gameId}</h3>
                 <span className={`status-badge ${game.revealed ? 'completed' : 'active'}`}>
@@ -254,20 +249,33 @@ export function GamesList() {
                     <div className="choices-revealed">
                       <div className="choice-display">
                         <span className="player-label">Player 1 chose:</span>
-                        <span className="choice-emoji">{getChoiceDisplay(game.revealedChoice1).emoji}</span>
-                        <span className="choice-name">{getChoiceDisplay(game.revealedChoice1).name}</span>
+                        <div className={`choice-icon choice-icon--sm choice-icon--${revealedChoice1.variant}`}>
+                          {revealedChoice1.icon ? (
+                            <img src={revealedChoice1.icon} alt={`${revealedChoice1.name} icon`} />
+                          ) : (
+                            <span className="choice-icon-label">{revealedChoice1.label}</span>
+                          )}
+                        </div>
+                        <span className="choice-name">{revealedChoice1.name}</span>
                       </div>
                       <div className="choice-display">
                         <span className="player-label">Player 2 chose:</span>
-                        <span className="choice-emoji">{getChoiceDisplay(game.revealedChoice2).emoji}</span>
-                        <span className="choice-name">{getChoiceDisplay(game.revealedChoice2).name}</span>
+                        <div className={`choice-icon choice-icon--sm choice-icon--${revealedChoice2.variant}`}>
+                          {revealedChoice2.icon ? (
+                            <img src={revealedChoice2.icon} alt={`${revealedChoice2.name} icon`} />
+                          ) : (
+                            <span className="choice-icon-label">{revealedChoice2.label}</span>
+                          )}
+                        </div>
+                        <span className="choice-name">{revealedChoice2.name}</span>
                       </div>
                     </div>
                   </div>
                 )}
               </div>
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

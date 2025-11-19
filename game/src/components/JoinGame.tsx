@@ -3,6 +3,7 @@ import { useAccount } from 'wagmi';
 import { useZamaInstance } from '../hooks/useZamaInstance';
 import { useContractInteraction } from '../hooks/useContractInteraction';
 import '../styles/JoinGame.css';
+import { CHOICES, getChoiceDefinition } from '../utils/choices';
 
 export function JoinGame() {
   const { address } = useAccount();
@@ -16,11 +17,7 @@ export function JoinGame() {
   const { instance } = useZamaInstance();
   const { getGame, makeChoice, contractAddress, subscribeToChoiceMadeEvent, subscribeToGameRevealedEvent } = useContractInteraction();
 
-  const choices = [
-    { value: 1, name: 'Rock', emoji: '🪨', description: 'Crushes Scissors' },
-    { value: 2, name: 'Paper', emoji: '📄', description: 'Covers Rock' },
-    { value: 3, name: 'Scissors', emoji: '✂️', description: 'Cuts Paper' }
-  ];
+  const choices = CHOICES;
 
   const fetchGameInfo = async () => {
     if (!gameId || !parseInt(gameId)) return;
@@ -155,15 +152,7 @@ export function JoinGame() {
     }
   };
 
-  const getChoiceDisplay = (choice: number) => {
-    const choices = {
-      0: { emoji: '❓', name: 'Unknown' },
-      1: { emoji: '🪨', name: 'Rock' },
-      2: { emoji: '📄', name: 'Paper' },
-      3: { emoji: '✂️', name: 'Scissors' }
-    };
-    return choices[choice as keyof typeof choices] || choices[0];
-  };
+  const getChoiceDisplay = (choice: number) => getChoiceDefinition(choice);
 
   return (
     <div className="join-game-container">
@@ -200,12 +189,30 @@ export function JoinGame() {
                   <div className="choice-results">
                     <div className="player-choice">
                       <span>Player 1 chose: </span>
-                      <span className="choice-emoji">{getChoiceDisplay(gameInfo.revealedChoice1).emoji}</span>
+                      <div className={`choice-icon choice-icon--sm choice-icon--${getChoiceDisplay(gameInfo.revealedChoice1).variant}`}>
+                        {getChoiceDisplay(gameInfo.revealedChoice1).icon ? (
+                          <img
+                            src={getChoiceDisplay(gameInfo.revealedChoice1).icon}
+                            alt={`${getChoiceDisplay(gameInfo.revealedChoice1).name} icon`}
+                          />
+                        ) : (
+                          <span className="choice-icon-label">{getChoiceDisplay(gameInfo.revealedChoice1).label}</span>
+                        )}
+                      </div>
                       <span className="choice-name">{getChoiceDisplay(gameInfo.revealedChoice1).name}</span>
                     </div>
                     <div className="player-choice">
                       <span>Player 2 chose: </span>
-                      <span className="choice-emoji">{getChoiceDisplay(gameInfo.revealedChoice2).emoji}</span>
+                      <div className={`choice-icon choice-icon--sm choice-icon--${getChoiceDisplay(gameInfo.revealedChoice2).variant}`}>
+                        {getChoiceDisplay(gameInfo.revealedChoice2).icon ? (
+                          <img
+                            src={getChoiceDisplay(gameInfo.revealedChoice2).icon}
+                            alt={`${getChoiceDisplay(gameInfo.revealedChoice2).name} icon`}
+                          />
+                        ) : (
+                          <span className="choice-icon-label">{getChoiceDisplay(gameInfo.revealedChoice2).label}</span>
+                        )}
+                      </div>
                       <span className="choice-name">{getChoiceDisplay(gameInfo.revealedChoice2).name}</span>
                     </div>
                   </div>
@@ -226,7 +233,13 @@ export function JoinGame() {
                   className={`choice-button ${selectedChoice === choice.value ? 'selected' : ''}`}
                   disabled={isSubmitting}
                 >
-                  <div className="choice-emoji">{choice.emoji}</div>
+                  <div className={`choice-icon choice-icon--lg choice-icon--${choice.variant}`}>
+                    {choice.icon ? (
+                      <img src={choice.icon} alt={`${choice.name} icon`} />
+                    ) : (
+                      <span className="choice-icon-label">{choice.label}</span>
+                    )}
+                  </div>
                   <div className="choice-name">{choice.name}</div>
                   <div className="choice-description">{choice.description}</div>
                 </button>
