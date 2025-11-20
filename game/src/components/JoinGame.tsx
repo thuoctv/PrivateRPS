@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type WheelEvent } from 'react';
 import { useAccount } from 'wagmi';
 import { useZamaInstance } from '../hooks/useZamaInstance';
 import { useContractInteraction } from '../hooks/useContractInteraction';
@@ -203,6 +203,11 @@ export function JoinGame({ selectedGame }: JoinGameProps) {
 
   const getChoiceDisplay = (choice: number) => getChoiceDefinition(choice);
 
+  const preventNumberInputScroll = (event: WheelEvent<HTMLInputElement>) => {
+    event.preventDefault();
+    event.currentTarget.blur();
+  };
+
   return (
     <div className="join-game-container">
       <div className="join-game-card">
@@ -217,6 +222,7 @@ export function JoinGame({ selectedGame }: JoinGameProps) {
             type="number"
             value={gameId}
             onChange={(e) => setGameId(e.target.value)}
+            onWheel={preventNumberInputScroll}
             placeholder="Enter game ID"
             className="form-input"
           />
