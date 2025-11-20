@@ -18,7 +18,6 @@ import "./tasks/RockPaperScissors";
 
 const MNEMONIC: string = process.env.MNEMONIC || vars.get("MNEMONIC", "test test test test test test test test test test test junk");
 const INFURA_API_KEY: string = process.env.INFURA_API_KEY || vars.get("INFURA_API_KEY", "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
-const PRIVATE_KEY: string = process.env.PRIVATE_KEY || "";
 
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
