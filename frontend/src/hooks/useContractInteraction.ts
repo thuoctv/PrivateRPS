@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+import type { Log } from 'ethers';
 import { useState, useCallback } from 'react';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../config/contracts';
 import { useZamaInstance } from './useZamaInstance';
@@ -7,24 +8,26 @@ export function useContractInteraction() {
   const [isLoading, setIsLoading] = useState(false);
   const { instance } = useZamaInstance();
 
-
-  const getProvider = () => {
+  const getProvider = useCallback(() => {
     if (!window.ethereum) {
       throw new Error('No ethereum provider found');
     }
     return new ethers.BrowserProvider(window.ethereum);
-  };
+  }, []);
 
-  const getContract = async (withSigner = false) => {
-    const provider = getProvider();
+  const getContract = useCallback(
+    async (withSigner = false) => {
+      const provider = getProvider();
 
-    if (withSigner) {
-      const signer = await provider.getSigner();
-      return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-    }
+      if (withSigner) {
+        const signer = await provider.getSigner();
+        return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+      }
 
-    return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
-  };
+      return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+    },
+    [getProvider],
+  );
 
   const createGame = async (player2Address: string): Promise<number> => {
     setIsLoading(true);
@@ -34,7 +37,7 @@ export function useContractInteraction() {
       const receipt = await tx.wait();
 
       // Find the GameCreated event to get the game ID
-      const gameCreatedEvent = receipt.logs.find((log: any) => {
+      const gameCreatedEvent = receipt.logs.find((log: Log) => {
         try {
           const parsed = contract.interface.parseLog(log);
           return parsed?.name === 'GameCreated';
@@ -57,13 +60,13 @@ export function useContractInteraction() {
   const makeChoice = async (
     gameId: number,
     encryptedChoice: string,
-    inputProof: string
+    inputProof: string,
   ): Promise<void> => {
     setIsLoading(true);
     try {
       const contract = await getContract(true);
-      console.log("makeChoice:",gameId,encryptedChoice,inputProof);
-      
+      console.log('makeChoice:', gameId, encryptedChoice, inputProof);
+
       const tx = await contract.makeChoice(gameId, encryptedChoice, inputProof);
       await tx.wait();
     } finally {
@@ -75,94 +78,99 @@ export function useContractInteraction() {
     setIsLoading(true);
     try {
       const contract = await getContract(true);
-      let shouldTriggerRevealTx = true;
 
-      const decryptionPending = await contract.decryptionPending();
-      if (decryptionPending) {
-        const pendingId = Number(await contract.pendingGameId());
-        if (pendingId === gameId) {
-          console.log('Decryption already pending for this game. Resuming decryption flow without calling revealGame.');
-          shouldTriggerRevealTx = false;
-        } else {
-          throw new Error(`Another decryption is currently in progress for game ${pendingId}. Please wait for it to finish before revealing another game.`);
-        }
+      let revealRequested = false;
+      try {
+        const gameDetails = await contract.games(gameId);
+        revealRequested = Boolean(
+          gameDetails?.revealRequested ?? gameDetails?.[6],
+        );
+      } catch (readError) {
+        console.warn('Unable to read game details before reveal:', readError);
       }
 
-      if (shouldTriggerRevealTx) {
-        // Step 1: Call revealGame to make choices publicly decryptable
-        // This will call _determineWinner() which sets decryptionPending = true
-        console.log('Step 1: Calling revealGame to make choices publicly decryptable...');
+      if (!revealRequested) {
+        console.log(
+          'Calling revealGame to mark ciphertexts publicly decryptable...',
+        );
         const revealTx = await contract.revealGame(gameId);
         const revealReceipt = await revealTx.wait();
         console.log('revealGame transaction confirmed:', revealReceipt.hash);
-        
-        // Step 2: Wait a bit for the contract state to update
-        // (decryptionPending should now be true)
-        await new Promise(resolve => setTimeout(resolve, 1000));
       } else {
-        console.log('Skipping revealGame transaction because decryption is already pending for this game.');
+        console.log(
+          'Reveal already requested, skipping revealGame transaction.',
+        );
       }
-      
-      // Step 3: Get the encrypted choices (handles) from contract
-      console.log('Step 2: Fetching game choices (handles) from contract...');
-      const [handle1, handle2] = await contract.getGameChoices(gameId);
-      console.log('Handles retrieved:', { handle1, handle2 });
-      
-      // Step 4: Decrypt off-chain using relayer-sdk
-      if (!instance) {
-        throw new Error('Zama instance not initialized. Please wait for encryption service to be ready.');
-      }
-      
-      console.log('Step 3: Decrypting off-chain using Zama relayer-sdk...');
-      const handlesList = [handle1, handle2];
-      
-      // Call publicDecrypt from Zama instance
-      // Note: API might be different in v0.3, adjust if needed
-      const normalizeHandle = (handle: string | Uint8Array) =>
-        (typeof handle === 'string' ? handle : ethers.hexlify(handle)).toLowerCase();
 
-      const normalizedHandles = handlesList.map((handle: string | Uint8Array) => normalizeHandle(handle));
+      console.log('Fetching encrypted choice handles...');
+      const handlesList = await contract.getGameChoices(gameId);
+
+      if (!instance) {
+        throw new Error(
+          'Zama instance not initialized. Please wait for encryption service to be ready.',
+        );
+      }
+
+      console.log('Decrypting off-chain using relayer SDK...');
+      const normalizeHandle = (handle: string | Uint8Array) =>
+        (typeof handle === 'string'
+          ? handle
+          : ethers.hexlify(handle)
+        ).toLowerCase();
+      const normalizedHandles = handlesList.map((handle: string | Uint8Array) =>
+        normalizeHandle(handle),
+      );
 
       const decryptionResult = await instance.publicDecrypt(handlesList);
       console.log('Decryption result:', decryptionResult);
 
-      const clearValues = decryptionResult?.clearValues ?? {};
-      const resolvedValues = normalizedHandles.map((handle) => clearValues[handle as keyof typeof clearValues]);
+      const valuesMap = (decryptionResult?.clearValues ??
+        decryptionResult?.values ??
+        {}) as Record<string, string | number | undefined>;
+      const resolvedValues = normalizedHandles.map(
+        (handle: string) => valuesMap[handle],
+      );
 
-      let cleartexts: string | null = decryptionResult?.abiEncodedClearValues ?? null;
-      if (!cleartexts) {
-        if (resolvedValues.some((value) => value === undefined)) {
-          throw new Error('Decryption failed. Please try revealing again.');
-        }
-
-        // Step 5: Encode cleartexts as ABI-encoded (uint8, uint8)
-        // The contract expects: abi.decode(cleartexts, (uint8, uint8))
-        cleartexts = ethers.AbiCoder.defaultAbiCoder().encode(
-          ['uint8', 'uint8'],
-          resolvedValues.map((value) => Number(value))
+      if (
+        resolvedValues.some(
+          (value: string | number | undefined) => value === undefined,
+        )
+      ) {
+        throw new Error(
+          'Missing decrypted values. Please try revealing again.',
         );
       }
 
-      const decryptionProof = decryptionResult?.decryptionProof ?? decryptionResult?.proof;
+      const numericChoices = resolvedValues as Array<string | number>;
+      const [choice1, choice2] = numericChoices.map((value) => Number(value));
+
+      const decryptionProof =
+        decryptionResult?.decryptionProof ?? decryptionResult?.proof;
       if (!decryptionProof) {
         throw new Error('Missing decryption proof from relayer.');
       }
-      
-      // Step 6: Call decryptionCallback with handlesList, cleartexts, and proof
-      console.log('Step 4: Calling decryptionCallback with decrypted values and proof...');
-      const callbackTx = await contract.decryptionCallback(
-        handlesList,
-        cleartexts,
-        decryptionProof
+
+      console.log(
+        'Calling finalizeGameReveal with decrypted values and proof...',
       );
-      
-      const callbackReceipt = await callbackTx.wait();
-      console.log('decryptionCallback transaction confirmed:', callbackReceipt.hash);
+      const finalizeTx = await contract.finalizeGameReveal(
+        gameId,
+        choice1,
+        choice2,
+        decryptionProof,
+      );
+      const finalizeReceipt = await finalizeTx.wait();
+      console.log(
+        'finalizeGameReveal transaction confirmed:',
+        finalizeReceipt.hash,
+      );
       console.log('Game revealed successfully!');
-      
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error in revealGame:', err);
-      throw new Error(err.message || 'Failed to reveal game');
+      if (err instanceof Error) {
+        throw err;
+      }
+      throw new Error('Failed to reveal game');
     } finally {
       setIsLoading(false);
     }
@@ -181,85 +189,112 @@ export function useContractInteraction() {
       result: Number(result[5]),
       revealedChoice1: Number(result[6]),
       revealedChoice2: Number(result[7]),
-      createdAt: Number(result[8])
+      createdAt: Number(result[8]),
     };
   };
 
   const getPlayerGames = async (playerAddress: string): Promise<number[]> => {
     const contract = await getContract(false);
-    const result = await contract.getPlayerGames(playerAddress);
-    return result.map((id: any) => Number(id));
+    const result = (await contract.getPlayerGames(
+      playerAddress,
+    )) as Array<bigint>;
+    return result.map((id) => Number(id));
   };
 
   // Event listening functions
-  const subscribeToChoiceMadeEvent = useCallback((callback: (gameId: number, player: string) => void) => {
-    let cleanupFunc: (() => void) | null = null;
+  const subscribeToChoiceMadeEvent = useCallback(
+    (callback: (gameId: number, player: string) => void) => {
+      let cleanupFunc: (() => void) | null = null;
 
-    const setupListener = async () => {
-      try {
-        const contract = await getContract(false);
+      const setupListener = async () => {
+        try {
+          const contract = await getContract(false);
 
-        const listener = (gameId: bigint, player: string) => {
-          console.log('ChoiceMade event:', { gameId: Number(gameId), player });
-          callback(Number(gameId), player);
-        };
+          const listener = (gameId: bigint, player: string) => {
+            console.log('ChoiceMade event:', {
+              gameId: Number(gameId),
+              player,
+            });
+            callback(Number(gameId), player);
+          };
 
-        contract.on('ChoiceMade', listener);
+          contract.on('ChoiceMade', listener);
 
-        cleanupFunc = () => {
-          contract.off('ChoiceMade', listener);
-        };
+          cleanupFunc = () => {
+            contract.off('ChoiceMade', listener);
+          };
 
-        console.log('Subscribed to ChoiceMade events');
-      } catch (error) {
-        console.error('Failed to subscribe to ChoiceMade events:', error);
-      }
-    };
+          console.log('Subscribed to ChoiceMade events');
+        } catch (error) {
+          console.error('Failed to subscribe to ChoiceMade events:', error);
+        }
+      };
 
-    setupListener();
+      setupListener();
 
-    // Return cleanup function
-    return () => {
-      if (cleanupFunc) {
-        cleanupFunc();
-      }
-    };
-  }, []);
+      // Return cleanup function
+      return () => {
+        if (cleanupFunc) {
+          cleanupFunc();
+        }
+      };
+    },
+    [getContract],
+  );
 
-  const subscribeToGameRevealedEvent = useCallback((callback: (gameId: number, result: number, choice1: number, choice2: number) => void) => {
-    let cleanupFunc: (() => void) | null = null;
+  const subscribeToGameRevealedEvent = useCallback(
+    (
+      callback: (
+        gameId: number,
+        result: number,
+        choice1: number,
+        choice2: number,
+      ) => void,
+    ) => {
+      let cleanupFunc: (() => void) | null = null;
 
-    const setupListener = async () => {
-      try {
-        const contract = await getContract(false);
+      const setupListener = async () => {
+        try {
+          const contract = await getContract(false);
 
-        const listener = (gameId: bigint, result: number, choice1: number, choice2: number) => {
-          console.log('GameRevealed event:', { gameId: Number(gameId), result, choice1, choice2 });
-          callback(Number(gameId), result, choice1, choice2);
-        };
+          const listener = (
+            gameId: bigint,
+            result: number,
+            choice1: number,
+            choice2: number,
+          ) => {
+            console.log('GameRevealed event:', {
+              gameId: Number(gameId),
+              result,
+              choice1,
+              choice2,
+            });
+            callback(Number(gameId), result, choice1, choice2);
+          };
 
-        contract.on('GameRevealed', listener);
+          contract.on('GameRevealed', listener);
 
-        cleanupFunc = () => {
-          contract.off('GameRevealed', listener);
-        };
+          cleanupFunc = () => {
+            contract.off('GameRevealed', listener);
+          };
 
-        console.log('Subscribed to GameRevealed events');
-      } catch (error) {
-        console.error('Failed to subscribe to GameRevealed events:', error);
-      }
-    };
+          console.log('Subscribed to GameRevealed events');
+        } catch (error) {
+          console.error('Failed to subscribe to GameRevealed events:', error);
+        }
+      };
 
-    setupListener();
+      setupListener();
 
-    // Return cleanup function
-    return () => {
-      if (cleanupFunc) {
-        cleanupFunc();
-      }
-    };
-  }, []);
-
+      // Return cleanup function
+      return () => {
+        if (cleanupFunc) {
+          cleanupFunc();
+        }
+      };
+    },
+    [getContract],
+  );
 
   return {
     createGame,
@@ -270,6 +305,6 @@ export function useContractInteraction() {
     subscribeToChoiceMadeEvent,
     subscribeToGameRevealedEvent,
     isLoading,
-    contractAddress: CONTRACT_ADDRESS
+    contractAddress: CONTRACT_ADDRESS,
   };
 }

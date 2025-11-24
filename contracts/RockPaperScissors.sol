@@ -25,6 +25,7 @@ contract RockPaperScissors is ZamaEthereumConfig {
         euint8 choice2;
         bool player1Made;
         bool player2Made;
+        bool revealRequested;
         bool revealed;
         GameResult result;
         uint8 revealedChoice1;
@@ -63,6 +64,7 @@ contract RockPaperScissors is ZamaEthereumConfig {
             choice2: FHE.asEuint8(0),
             player1Made: false,
             player2Made: false,
+            revealRequested: false,
             revealed: false,
             result: GameResult.Pending,
             revealedChoice1: 0,
@@ -110,8 +112,6 @@ contract RockPaperScissors is ZamaEthereumConfig {
 
     function revealGame(uint256 _gameId) external {
         require(_gameId > 0 && _gameId <= gameCounter, "Invalid game ID");
-        require(!decryptionPending, "Another decryption in progress");
-
         Game storage game = games[_gameId];
         require(
             msg.sender == game.player1 || msg.sender == game.player2,
@@ -123,57 +123,63 @@ contract RockPaperScissors is ZamaEthereumConfig {
         );
         require(!game.revealed, "Game already revealed");
 
-        _determineWinner(_gameId);
-    }
+        require(!game.revealRequested, "Reveal already requested");
 
-    bool public decryptionPending;
-    uint256 public pendingGameId;
-
-    function _determineWinner(uint256 gameId) private {
-        Game storage game = games[gameId];
-
-        // Make choices publicly decryptable
+        // Mark both ciphertext handles as publicly decryptable so any client can
+        // execute the off-chain publicDecrypt flow described in the Zama docs.
         FHE.makePubliclyDecryptable(game.choice1);
         FHE.makePubliclyDecryptable(game.choice2);
+        game.revealRequested = true;
 
-        decryptionPending = true;
-        pendingGameId = gameId;
+        emit RevealRequested(_gameId, game.choice1, game.choice2);
     }
 
-    function decryptionCallback(
-        bytes32[] memory handlesList,
-        bytes memory cleartexts,
-        bytes memory decryptionProof
-    ) public {
-        require(decryptionPending, "No decryption pending");
-        require(handlesList.length == 2, "Invalid handles list length");
+    event RevealRequested(
+        uint256 indexed gameId,
+        euint8 player1ChoiceHandle,
+        euint8 player2ChoiceHandle
+    );
 
-        // Verify signatures
-        FHE.checkSignatures(handlesList, cleartexts, decryptionProof);
+    function finalizeGameReveal(
+        uint256 _gameId,
+        uint8 _choice1,
+        uint8 _choice2,
+        bytes calldata _publicDecryptionProof
+    ) external {
+        require(_gameId > 0 && _gameId <= gameCounter, "Invalid game ID");
 
-        // Decode cleartexts - ABI encoded as (uint8, uint8)
-        (uint8 choice1, uint8 choice2) = abi.decode(cleartexts, (uint8, uint8));
+        Game storage game = games[_gameId];
+        require(game.revealRequested, "Reveal not requested");
+        require(!game.revealed, "Game already revealed");
+
+        // Build the ciphertext handle list in the same order used when the
+        // off-chain client called publicDecrypt([choice1, choice2]).
+        bytes32[] memory handles = new bytes32[](2);
+        handles[0] = FHE.toBytes32(game.choice1);
+        handles[1] = FHE.toBytes32(game.choice2);
+
+        bytes memory cleartexts = abi.encode(_choice1, _choice2);
+        FHE.checkSignatures(handles, cleartexts, _publicDecryptionProof);
 
         GameResult result;
-        if (choice1 == choice2) {
+        if (_choice1 == _choice2) {
             result = GameResult.Draw;
         } else if (
-            (choice1 == 1 && choice2 == 3) || // Rock beats Scissors
-            (choice1 == 2 && choice2 == 1) || // Paper beats Rock
-            (choice1 == 3 && choice2 == 2) // Scissors beats Paper
+            (_choice1 == 1 && _choice2 == 3) ||
+            (_choice1 == 2 && _choice2 == 1) ||
+            (_choice1 == 3 && _choice2 == 2)
         ) {
             result = GameResult.Player1Wins;
         } else {
             result = GameResult.Player2Wins;
         }
 
-        games[pendingGameId].result = result;
-        games[pendingGameId].revealed = true;
-        games[pendingGameId].revealedChoice1 = choice1;
-        games[pendingGameId].revealedChoice2 = choice2;
-        decryptionPending = false;
+        game.result = result;
+        game.revealed = true;
+        game.revealedChoice1 = _choice1;
+        game.revealedChoice2 = _choice2;
 
-        emit GameRevealed(pendingGameId, result, choice1, choice2);
+        emit GameRevealed(_gameId, result, _choice1, _choice2);
     }
 
     function getGame(

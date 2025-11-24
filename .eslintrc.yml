@@ -5,7 +5,9 @@ extends:
   - "prettier"
 parser: "@typescript-eslint/parser"
 parserOptions:
-  project: "tsconfig.json"
+  project:
+    - "tsconfig.json"
+    - "scripts/tsconfig.json"
 plugins:
   - "@typescript-eslint"
 root: true
@@ -19,3 +21,12 @@ rules:
     - error
     - argsIgnorePattern: "_"
       varsIgnorePattern: "_"
+overrides:
+  - files:
+      - "scripts/**/*.js"
+    env:
+      node: true
+    rules:
+      "@typescript-eslint/no-require-imports": "off"
+      "@typescript-eslint/no-var-requires": "off"
+      "no-console": "off"
