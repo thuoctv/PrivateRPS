@@ -36,7 +36,7 @@ async function main() {
     
     // Step 3: Update frontend config
     console.log('Step 3: Updating frontend config...');
-    const frontendConfigPath = path.join(__dirname, '..', 'game', 'src', 'config', 'contracts.ts');
+    const frontendConfigPath = path.join(__dirname, '..', 'frontend', 'src', 'config', 'contracts.ts');
     
     // Read current config
     let configContent = fs.readFileSync(frontendConfigPath, 'utf-8');
@@ -91,5 +91,7 @@ async function main() {
   }
 }
 
-main();
-
+main().catch((error) => {
+  console.error('❌ Unhandled error:', error);
+  process.exit(1);
+});
